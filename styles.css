@@ -322,6 +322,10 @@ img {
 }
 
 .social-links a:nth-child(5) {
+  color: #ffffff;
+}
+
+.social-links a:nth-child(6) {
   color: #e41321;
 }
 
