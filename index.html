@@ -48,15 +48,17 @@
 
     <!-- ============================================================
          UPDATE ME: featured video
-         Set videoId to pin a specific video in the Now Playing hero
-         (e.g. "lWev0Kb54nc"). Leave all three as "" to automatically
-         feature the newest YouTube upload from the feed.
+         Set videoId to pin a specific video as the FIRST hero slide
+         (e.g. "lWev0Kb54nc"). Leave all three as "" for the automatic
+         rotation of your newest uploads. heroMax = how many videos
+         rotate in the hero slideshow.
          ============================================================ -->
     <script>
       window.XFD_FEATURED = {
         videoId: "",
         title: "",
-        url: ""
+        url: "",
+        heroMax: 5
       };
     </script>
   </head>
@@ -115,25 +117,22 @@
               <img src="assets/xeno-final-dawn-logo.png" alt="">
               <span>One portal. Infinite possibilities.</span>
             </div>
-            <p class="eyebrow">Now playing // featured transmission</p>
+            <p class="eyebrow">Now playing // social transmissions</p>
             <div class="hero-title-lockup">
               <span>XenoFinalDawn</span>
-              <h1 id="hero-title">Latest from XFD</h1>
+              <h1 id="hero-title" class="hero-slide-title">Latest from XFD</h1>
             </div>
-            <p id="featured-drop-blurb">
-              Videos, news, designs, shop drops, and portal updates from across the XenoFinalDawn network.
-            </p>
+            <p id="hero-slide-meta" class="hero-slide-meta">Fresh videos from across the XFD network.</p>
             <div class="hero-actions">
               <a class="button primary" id="featured-watch-link" href="https://www.youtube.com/@Xenofinaldawn">
                 <i class="fa-solid fa-play" aria-hidden="true"></i>
                 Watch now
               </a>
-            </div>
-            <div class="discover-feed" id="recent-strip" aria-label="Recent from XFD">
-              <a href="#feed">
-                <span>Recent</span>
-                <strong>Loading the latest transmissions…</strong>
-              </a>
+              <div class="hero-slide-nav" aria-label="Hero slideshow controls">
+                <button id="hero-prev" type="button" aria-label="Previous video">‹</button>
+                <span id="hero-count">1 / 1</span>
+                <button id="hero-next" type="button" aria-label="Next video">›</button>
+              </div>
             </div>
           </div>
 
@@ -153,45 +152,45 @@
         <div class="section-heading">
           <p class="eyebrow">Select your world // press start</p>
           <h2 id="select-title">Choose a portal</h2>
-          <p>Pick a world to filter the feed below — or step through to its full portal page.</p>
+          <p>Step through to a world's full portal page.</p>
         </div>
 
-        <div class="channel-grid" id="portal-select">
-          <div class="channel-card horror" data-select="horror" tabindex="0" role="button" aria-pressed="false">
+        <div class="channel-grid">
+          <a class="channel-card horror" href="horror.html">
             <span>// subject: evil_dead_lore</span>
             <div class="channel-icon" aria-hidden="true"><i class="fa-solid fa-skull"></i></div>
             <h3>Horror</h3>
             <p>Unknown signals, genre history, and practical effects love.</p>
-            <a class="portal-enter" href="horror.html">Enter portal →</a>
-          </div>
-          <div class="channel-card anime" data-select="anime" tabindex="0" role="button" aria-pressed="false">
+            <b class="portal-enter">Enter portal →</b>
+          </a>
+          <a class="channel-card anime" href="anime.html">
             <span>// edit_workflow: final_cut_pro</span>
             <div class="channel-icon" aria-hidden="true"><i class="fa-solid fa-eye"></i></div>
             <h3>Anime &amp; Manga</h3>
             <p>Final bosses, power scaling, edits, and visual fire.</p>
-            <a class="portal-enter" href="anime.html">Enter portal →</a>
-          </div>
-          <div class="channel-card wrestling" data-select="wrestling" tabindex="0" role="button" aria-pressed="false">
+            <b class="portal-enter">Enter portal →</b>
+          </a>
+          <a class="channel-card wrestling" href="wrestling.html">
             <span>// update: wwe_aew_news</span>
             <div class="channel-icon" aria-hidden="true"><i class="fa-solid fa-trophy"></i></div>
             <h3>Wrestling</h3>
             <p>Match energy, roster moments, and ringside commentary.</p>
-            <a class="portal-enter" href="wrestling.html">Enter portal →</a>
-          </div>
-          <div class="channel-card tech" data-select="tech" tabindex="0" role="button" aria-pressed="false">
+            <b class="portal-enter">Enter portal →</b>
+          </a>
+          <a class="channel-card tech" href="tech-gaming.html">
             <span>// system: home_lab_status</span>
             <div class="channel-icon" aria-hidden="true"><i class="fa-solid fa-gamepad"></i></div>
             <h3>Gaming &amp; Tech</h3>
             <p>Retro flags, console talk, gaming culture, and builds.</p>
-            <a class="portal-enter" href="tech-gaming.html">Enter portal →</a>
-          </div>
-          <div class="channel-card popculture" data-select="popculture" tabindex="0" role="button" aria-pressed="false">
+            <b class="portal-enter">Enter portal →</b>
+          </a>
+          <a class="channel-card popculture" href="popculture.html">
             <span>// trending: pop_culture_radar</span>
             <div class="channel-icon" aria-hidden="true"><i class="fa-solid fa-icons"></i></div>
             <h3>Pop Culture</h3>
             <p>Movies, music, celebs, trends, and what everyone is talking about.</p>
-            <a class="portal-enter" href="popculture.html">Enter portal →</a>
-          </div>
+            <b class="portal-enter">Enter portal →</b>
+          </a>
         </div>
       </section>
 
@@ -217,32 +216,6 @@
         <p id="empty-state" class="empty-state" hidden>No matching transmissions found.</p>
       </section>
 
-      <!-- ── 2.4 TRANSMISSION LOG (patch notes) ──────────────────── -->
-      <section class="section-banner transmission-log" aria-labelledby="log-title">
-        <div class="section-heading">
-          <p class="eyebrow">Patch notes // system updates</p>
-          <h2 id="log-title">Transmission Log</h2>
-        </div>
-
-        <!-- UPDATE ME: patch notes — copy an <li> below, change the date + text, done. -->
-        <ul class="patch-notes">
-          <li>
-            <time datetime="2026-07-02">2026-07-02</time>
-            <span>Pop Culture portal restocked — recovered tributes and nostalgia pieces are back online.</span>
-            <a href="popculture.html">View portal →</a>
-          </li>
-          <li>
-            <time datetime="2026-07-02">2026-07-02</time>
-            <span>The XFD Shop gets its new home on the portal — store migration in progress.</span>
-            <a href="#shop">Visit the shelf →</a>
-          </li>
-          <li>
-            <time datetime="2026-07-01">2026-07-01</time>
-            <span>New drop: “Before Dandadan, There Was Abenobashi” — video + article live in Anime &amp; Manga.</span>
-            <a href="article.html?id=anime-before-dandadan-there-was-abenobashi-remembering-animes-forg">Read it →</a>
-          </li>
-        </ul>
-      </section>
 
       <!-- ── 2.5 SHOP SHELF ──────────────────────────────────────── -->
       <section id="shop" class="cta-band shop-shelf" aria-labelledby="shop-title">
@@ -288,6 +261,6 @@
       <p>© 2026 XenoFinalDawn (XFD). All rights reserved.</p>
     </footer>
 
-    <script src="app.js?v=one-feed-1"></script>
+    <script src="app.js?v=hero-slides-1"></script>
   </body>
 </html>

@@ -1,7 +1,10 @@
-/* XFD homepage: Now Playing hero, character-select portal filter, unified feed.
-   The feed merges articles.json (internal write-ups) with social-feed.json
-   (platform posts), deduped by YouTube video id. Filtering is plain JS and
-   degrades gracefully: portal cards keep real "Enter portal" links. */
+/* XFD homepage: hero slideshow of the latest videos + one deduped feed.
+   Dedupe works two ways:
+   1) canonical video id — pulled from the link OR the thumbnail, so the
+      same video posted on YouTube/Threads/Instagram/Facebook collapses
+      into one card (articles win, then YouTube, then other platforms);
+   2) fuzzy title match — titles that are ~75%+ identical (or where one
+      is a prefix of the other) are treated as the same content. */
 
 const fallbackFeed = [
   {
@@ -33,11 +36,11 @@ const fallbackFeed = [
   }
 ];
 
+const FEED_MAX = 6;
+
 const feedGrid = document.querySelector("#feed-grid");
 const searchInput = document.querySelector("#portal-search");
 const filterControls = document.querySelector(".filter-controls");
-const portalSelect = document.querySelector("#portal-select");
-const recentStrip = document.querySelector("#recent-strip");
 const emptyState = document.querySelector("#empty-state");
 
 let socialFeed = fallbackFeed;
@@ -46,7 +49,7 @@ let feedItems = [];
 let activeFilter = "all";
 
 const categoryLabels = {
-  all: "All",
+  all: "XFD",
   horror: "Horror",
   anime: "Anime & Manga",
   wrestling: "Wrestling",
@@ -54,25 +57,48 @@ const categoryLabels = {
   popculture: "Pop Culture"
 };
 
-const platformLabels = {
-  youtube: "YouTube",
-  tiktok: "TikTok",
-  instagram: "Instagram",
-  facebook: "Facebook",
-  threads: "Threads",
-  discord: "Discord",
-  fourthwall: "Fourthwall",
-  pinterest: "Pinterest"
-};
-
-function label(value) {
-  return categoryLabels[value] || platformLabels[value] || value;
+function categoryLabel(value) {
+  return categoryLabels[value] || value;
 }
+
+/* ── Dedupe helpers ───────────────────────────────────────────── */
 
 function getVideoId(url) {
   if (!url) return null;
-  const m = String(url).match(/(?:shorts\/|v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+  const m = String(url).match(/(?:shorts\/|v=|youtu\.be\/|embed\/|\/vi\/)([a-zA-Z0-9_-]{11})/);
   return m ? m[1] : null;
+}
+
+/* Same video id from the link or the thumbnail image. */
+function canonicalId(urlValue, thumbnailValue) {
+  return getVideoId(urlValue) || getVideoId(thumbnailValue);
+}
+
+function normalizeTitle(title) {
+  return String(title || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+/* True when titles are effectively the same content: one contains the
+   other from the start, or their word overlap (Dice) is >= 0.75. */
+function similarTitles(a, b) {
+  const ta = normalizeTitle(a);
+  const tb = normalizeTitle(b);
+  if (!ta.length || !tb.length) return false;
+  const [short, long] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+  if (short.length >= 3 && long.slice(0, short.length).join(" ") === short.join(" ")) return true;
+  const setB = new Set(tb);
+  const shared = ta.filter((w) => setB.has(w)).length;
+  return (2 * shared) / (ta.length + tb.length) >= 0.75;
+}
+
+function sourceRank(item) {
+  if (item.kind === "article") return 0;
+  if (item.platform === "youtube") return 1;
+  return 2;
 }
 
 function parseWhen(value) {
@@ -86,49 +112,69 @@ function displayDate(value) {
   return new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-/* Build one unified list: articles first (richer, internal links), then any
-   social posts whose video isn't already covered by an article. */
+/* ── Unified feed ─────────────────────────────────────────────── */
+
 function buildFeedItems() {
-  const articleVideoIds = new Set(
-    articles.map((a) => getVideoId(a.videoUrl)).filter(Boolean)
-  );
+  const candidates = [];
 
-  const articleItems = articles.map((a) => ({
-    kind: "article",
-    category: a.portal,
-    tag: label(a.portal),
-    meta: a.type || "article",
-    title: a.title,
-    date: a.date,
-    image: a.image || "assets/xeno-final-dawn-logo.png",
-    url: `article.html?id=${a.id}`
-  }));
+  articles.forEach((a) => {
+    candidates.push({
+      kind: "article",
+      platform: "article",
+      category: a.portal,
+      meta: a.type || "article",
+      title: a.title,
+      date: a.date,
+      image: a.image || "assets/xeno-final-dawn-logo.png",
+      url: `article.html?id=${a.id}`,
+      videoKey: canonicalId(a.videoUrl, a.image)
+    });
+  });
 
-  const socialItems = socialFeed
-    .filter((item) => !articleVideoIds.has(getVideoId(item.url)))
-    .map((item) => ({
+  socialFeed.forEach((item) => {
+    candidates.push({
       kind: "social",
+      platform: item.platform,
       category: item.portal || "all",
-      tag: platformLabels[item.platform] || item.platform,
       meta: item.type || "post",
       title: item.title,
       date: item.date,
       image: item.thumbnail || "assets/xeno-final-dawn-logo.png",
-      url: item.url
-    }));
+      url: item.url,
+      videoKey: canonicalId(item.url, item.thumbnail)
+    });
+  });
 
-  feedItems = articleItems.concat(socialItems).sort((a, b) => parseWhen(b.date) - parseWhen(a.date));
+  /* Best-first, so the keeper of each duplicate group is the richest. */
+  candidates.sort((a, b) => sourceRank(a) - sourceRank(b) || parseWhen(b.date) - parseWhen(a.date));
+
+  const kept = [];
+  for (const item of candidates) {
+    const dupe = kept.find(
+      (k) =>
+        (item.videoKey && k.videoKey && item.videoKey === k.videoKey) ||
+        similarTitles(item.title, k.title)
+    );
+    if (dupe) {
+      /* A social post can carry a more specific category than "all". */
+      if (dupe.category === "all" && item.category !== "all") dupe.category = item.category;
+      continue;
+    }
+    kept.push(item);
+  }
+
+  feedItems = kept.sort((a, b) => parseWhen(b.date) - parseWhen(a.date));
 }
 
 function feedCard(item) {
   return `
     <article class="media-card" data-category="${item.category}">
-      <span class="tag">${item.tag}</span>
+      <span class="tag">${categoryLabel(item.category)}</span>
       <a href="${item.url}">
         <img src="${item.image}" alt="${item.title} thumbnail" loading="lazy">
         <div class="content">
           <div class="meta-line">
-            <span>${label(item.category)}</span>
+            <span>${categoryLabel(item.category)}</span>
             <span>${item.meta}</span>
           </div>
           <h3>${item.title}</h3>
@@ -144,11 +190,11 @@ function renderFeed() {
   const query = (searchInput ? searchInput.value : "").trim().toLowerCase();
   const filtered = feedItems.filter((item) => {
     const matchesFilter = activeFilter === "all" || item.category === activeFilter;
-    const searchable = `${item.title} ${item.category} ${item.tag} ${item.meta} ${item.date}`.toLowerCase();
+    const searchable = `${item.title} ${categoryLabel(item.category)} ${item.meta} ${item.date}`.toLowerCase();
     return matchesFilter && searchable.includes(query);
   });
 
-  feedGrid.innerHTML = filtered.map(feedCard).join("");
+  feedGrid.innerHTML = filtered.slice(0, FEED_MAX).map(feedCard).join("");
   if (emptyState) emptyState.hidden = filtered.length > 0;
 }
 
@@ -157,98 +203,98 @@ function setFilter(filter) {
   document.querySelectorAll(".filter-controls [data-filter]").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.filter === filter);
   });
-  if (portalSelect) {
-    portalSelect.querySelectorAll(".channel-card").forEach((card) => {
-      const selected = card.dataset.select === filter;
-      card.classList.toggle("selected", selected);
-      card.setAttribute("aria-pressed", String(selected));
-    });
-  }
   renderFeed();
 }
 
-/* ── Now Playing hero ─────────────────────────────────────────── */
+/* ── Hero slideshow ───────────────────────────────────────────── */
 
-function resolveFeatured() {
+let heroItems = [];
+let heroIndex = 0;
+let heroTimer = null;
+
+function buildHeroItems() {
   const cfg = window.XFD_FEATURED || {};
-  const newest =
-    socialFeed.find((item) => item.platform === "youtube") ||
-    socialFeed.find((item) => item.type === "video") ||
-    socialFeed[0];
+  const max = cfg.heroMax || 5;
+
+  const videos = [];
+  const seen = new Set();
+  for (const item of socialFeed) {
+    const key = canonicalId(item.url, item.thumbnail) || item.title;
+    if (seen.has(key)) continue;
+    if (!item.thumbnail) continue;
+    seen.add(key);
+    videos.push({
+      title: item.title,
+      url: item.url,
+      date: item.date,
+      platform: item.platform,
+      thumbnail: item.thumbnail,
+      heroImage: (item.thumbnail || "").replace("/hqdefault.jpg", "/maxresdefault.jpg")
+    });
+    if (videos.length >= max) break;
+  }
 
   if (cfg.videoId) {
-    return {
-      title: cfg.title || (newest && newest.title) || "Latest from XFD",
+    videos.unshift({
+      title: cfg.title || "Featured from XFD",
       url: cfg.url || `https://www.youtube.com/watch?v=${cfg.videoId}`,
       date: "",
+      platform: "youtube",
       thumbnail: `https://i.ytimg.com/vi/${cfg.videoId}/hqdefault.jpg`,
       heroImage: `https://i.ytimg.com/vi/${cfg.videoId}/maxresdefault.jpg`
-    };
+    });
   }
-  if (!newest) return null;
-  return {
-    title: newest.title,
-    url: newest.url,
-    date: newest.date,
-    thumbnail: newest.thumbnail,
-    heroImage: (newest.thumbnail || "").replace("/hqdefault.jpg", "/maxresdefault.jpg")
-  };
+
+  heroItems = videos.slice(0, max);
 }
 
-function updateHero() {
-  const featured = resolveFeatured();
-  if (!featured) return;
+function renderHeroSlide() {
+  if (!heroItems.length) return;
+  heroIndex = ((heroIndex % heroItems.length) + heroItems.length) % heroItems.length;
+  const item = heroItems[heroIndex];
 
   const heroTitle = document.querySelector("#hero-title");
-  if (heroTitle) heroTitle.textContent = featured.title;
+  if (heroTitle) heroTitle.textContent = item.title;
+
+  const meta = document.querySelector("#hero-slide-meta");
+  if (meta) meta.textContent = item.date ? `Uploaded // ${displayDate(item.date)}` : "Featured transmission";
 
   const watchLink = document.querySelector("#featured-watch-link");
-  if (watchLink) watchLink.href = featured.url;
+  if (watchLink) watchLink.href = item.url;
 
   const heroBanner = document.querySelector(".hero-banner");
-  if (heroBanner && featured.heroImage) {
-    heroBanner.style.setProperty("--hero-banner-image", `url('${featured.heroImage}')`);
+  if (heroBanner && item.heroImage) {
+    heroBanner.style.setProperty("--hero-banner-image", `url('${item.heroImage}')`);
   }
 
   const panel = document.querySelector(".latest-video-panel");
   if (panel) {
-    panel.href = featured.url;
-    if (featured.thumbnail) {
-      panel.style.backgroundImage =
-        `linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.78)), url('${featured.thumbnail}')`;
-    }
+    panel.href = item.url;
+    panel.style.backgroundImage =
+      `linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.78)), url('${item.thumbnail}')`;
     const title = panel.querySelector(".latest-video-copy strong");
-    const meta = panel.querySelector(".latest-video-copy small");
-    if (title) title.textContent = featured.title;
-    if (meta) meta.textContent = featured.date ? `Featured // ${displayDate(featured.date)}` : "Featured transmission";
+    const small = panel.querySelector(".latest-video-copy small");
+    if (title) title.textContent = item.title;
+    if (small) small.textContent = item.date ? `Now playing // ${displayDate(item.date)}` : "Now playing";
   }
 
-  const blurb = document.querySelector("#featured-drop-blurb");
-  if (blurb) {
-    const videoId = getVideoId(featured.url);
-    const match = articles.find((a) => getVideoId(a.videoUrl) === videoId && (a.summary || a.body));
-    if (match) {
-      blurb.textContent = match.summary || match.body.slice(0, 300);
-    }
-  }
+  const count = document.querySelector("#hero-count");
+  if (count) count.textContent = `${heroIndex + 1} / ${heroItems.length}`;
 }
 
-function updateRecentStrip() {
-  if (!recentStrip) return;
-  const featured = resolveFeatured();
-  const featuredId = featured ? getVideoId(featured.url) : null;
-  const recents = feedItems
-    .filter((item) => getVideoId(item.url) !== featuredId)
-    .slice(0, 3);
-  if (!recents.length) return;
-  recentStrip.innerHTML = recents
-    .map((item) => `
-      <a href="${item.url}">
-        <span>${item.tag} // ${displayDate(item.date)}</span>
-        <strong>${item.title}</strong>
-      </a>
-    `)
-    .join("");
+function heroGo(delta) {
+  heroIndex += delta;
+  renderHeroSlide();
+}
+
+function startHeroAuto() {
+  stopHeroAuto();
+  if (heroItems.length > 1) heroTimer = setInterval(() => heroGo(1), 6000);
+}
+
+function stopHeroAuto() {
+  if (heroTimer) clearInterval(heroTimer);
+  heroTimer = null;
 }
 
 /* ── Data loading ─────────────────────────────────────────────── */
@@ -271,8 +317,9 @@ async function loadAll() {
   }
 
   buildFeedItems();
-  updateHero();
-  updateRecentStrip();
+  buildHeroItems();
+  renderHeroSlide();
+  startHeroAuto();
   renderFeed();
 }
 
@@ -286,26 +333,17 @@ if (filterControls) {
   });
 }
 
-if (portalSelect) {
-  portalSelect.addEventListener("click", (event) => {
-    if (event.target.closest(".portal-enter")) return; // real link wins
-    const card = event.target.closest(".channel-card");
-    if (!card) return;
-    const next = card.classList.contains("selected") ? "all" : card.dataset.select;
-    setFilter(next);
-    document.querySelector("#feed").scrollIntoView({ behavior: "smooth", block: "start" });
-  });
-  portalSelect.addEventListener("keydown", (event) => {
-    if (event.key !== "Enter" && event.key !== " ") return;
-    const card = event.target.closest(".channel-card");
-    if (!card || event.target.closest(".portal-enter")) return;
-    event.preventDefault();
-    const next = card.classList.contains("selected") ? "all" : card.dataset.select;
-    setFilter(next);
-    document.querySelector("#feed").scrollIntoView({ behavior: "smooth", block: "start" });
-  });
-}
-
 if (searchInput) searchInput.addEventListener("input", renderFeed);
+
+const heroPrev = document.querySelector("#hero-prev");
+const heroNext = document.querySelector("#hero-next");
+if (heroPrev) heroPrev.addEventListener("click", () => { heroGo(-1); startHeroAuto(); });
+if (heroNext) heroNext.addEventListener("click", () => { heroGo(1); startHeroAuto(); });
+
+const heroBannerEl = document.querySelector(".hero-banner");
+if (heroBannerEl) {
+  heroBannerEl.addEventListener("mouseenter", stopHeroAuto);
+  heroBannerEl.addEventListener("mouseleave", startHeroAuto);
+}
 
 loadAll();
