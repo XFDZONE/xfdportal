@@ -3303,7 +3303,8 @@ main {
 /* === HERO SLIDESHOW === */
 .hero-title-lockup .hero-slide-title {
   font-size: clamp(1.5rem, 3.2vw, 2.4rem);
-  line-height: 1.12;
+  line-height: 1.15;
+  white-space: normal;
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
