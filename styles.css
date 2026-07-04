@@ -3352,3 +3352,29 @@ main {
   font-size: 0.8rem;
   letter-spacing: 0.08em;
 }
+
+/* === FEED TAGS COLORED BY CATEGORY (Pop Culture = orange) === */
+.media-card[data-category="horror"] .tag {
+  background: var(--horror);
+  color: #041108;
+}
+
+.media-card[data-category="anime"] .tag {
+  background: var(--anime);
+  color: #ffffff;
+}
+
+.media-card[data-category="wrestling"] .tag {
+  background: var(--wrestling);
+  color: #ffffff;
+}
+
+.media-card[data-category="tech"] .tag {
+  background: var(--tech);
+  color: #04121a;
+}
+
+.media-card[data-category="popculture"] .tag {
+  background: var(--popculture);
+  color: #1a0d02;
+}
