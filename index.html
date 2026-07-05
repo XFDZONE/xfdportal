@@ -219,31 +219,48 @@
       </section>
 
 
-      <!-- ── 2.5 SHOP SHELF ──────────────────────────────────────── -->
-      <section id="shop" class="cta-band shop-shelf" aria-labelledby="shop-title">
-        <div class="shop-shelf-copy">
+      <!-- ── 2.5 SHOP (Fourthwall primary + Redbubble tab) ───────── -->
+      <section id="shop" class="section-banner shop-section" aria-labelledby="shop-title">
+        <div class="section-heading">
           <p class="eyebrow">Shop // official gear</p>
           <h2 id="shop-title">The XFD Shop</h2>
           <p>Shirts, stickers, and original XFD gear — straight from the portal. New drops land here first.</p>
-          <!-- UPDATE ME: swap Redbubble URL for Fourthwall store URL when live -->
-          <a class="button primary" href="https://www.redbubble.com/people/Gr3at1/shop?asc=u">Visit the shop</a>
         </div>
-        <div class="shop-shelf-items" aria-label="Featured products">
-          <!-- UPDATE ME: swap Redbubble URL for Fourthwall store URL when live -->
-          <a class="shop-shelf-item" href="https://www.redbubble.com/i/hoodie/The-Poet-by-Gr3at1/148883240/ng59">
-            <img src="assets/The%20Poet%20Hoodie.png" alt="The Poet hoodie" loading="lazy">
-            <span>The Poet Hoodie</span>
-          </a>
-          <!-- UPDATE ME: swap Redbubble URL for Fourthwall store URL when live -->
-          <a class="shop-shelf-item" href="https://www.redbubble.com/i/sticker/Bobby-Womack-Fly-Me-to-the-Moon-Retro-Cartoon-Art-Design-by-Gr3at1/173365365/7sgk">
-            <img src="assets/Bobby%20Womack%20Sticker.png" alt="Bobby Womack sticker" loading="lazy">
-            <span>Bobby Womack Sticker</span>
-          </a>
-          <!-- UPDATE ME: swap Redbubble URL for Fourthwall store URL when live -->
-          <a class="shop-shelf-item" href="https://www.redbubble.com/i/iphone-case/Frankenstein-Monster-by-Gr3at1/147702609/3bp7">
-            <img src="assets/Frankenstein%20Monster.png" alt="Frankenstein Monster phone case" loading="lazy">
-            <span>Frankenstein Monster</span>
-          </a>
+
+        <div class="shop-tabs">
+          <div class="shop-tablist" role="tablist" aria-label="Shop">
+            <button class="shop-tab is-active" id="tab-fw" type="button" role="tab"
+                    aria-controls="panel-fw" aria-selected="true">Fourthwall</button>
+            <button class="shop-tab" id="tab-rb" type="button" role="tab"
+                    aria-controls="panel-rb" aria-selected="false" tabindex="-1">Redbubble</button>
+          </div>
+
+          <!-- Fourthwall: default active, live product grid -->
+          <div class="shop-panel is-active" id="panel-fw" role="tabpanel" aria-labelledby="tab-fw">
+            <div id="fw-grid" class="fw-grid" aria-live="polite">
+              <p class="fw-loading">Loading the shop…</p>
+            </div>
+            <a class="button primary" href="https://xfd-shop.fourthwall.com" target="_blank" rel="noopener">Visit the full store →</a>
+          </div>
+
+          <!-- Redbubble: relocated verbatim, hidden until its tab is clicked -->
+          <div class="shop-panel" id="panel-rb" role="tabpanel" aria-labelledby="tab-rb" hidden>
+            <a class="button primary" href="https://www.redbubble.com/people/Gr3at1/shop?asc=u">Visit the shop</a>
+            <div class="shop-shelf-items" aria-label="Featured products">
+              <a class="shop-shelf-item" href="https://www.redbubble.com/i/hoodie/The-Poet-by-Gr3at1/148883240/ng59">
+                <img src="assets/The%20Poet%20Hoodie.png" alt="The Poet hoodie" loading="lazy">
+                <span>The Poet Hoodie</span>
+              </a>
+              <a class="shop-shelf-item" href="https://www.redbubble.com/i/sticker/Bobby-Womack-Fly-Me-to-the-Moon-Retro-Cartoon-Art-Design-by-Gr3at1/173365365/7sgk">
+                <img src="assets/Bobby%20Womack%20Sticker.png" alt="Bobby Womack sticker" loading="lazy">
+                <span>Bobby Womack Sticker</span>
+              </a>
+              <a class="shop-shelf-item" href="https://www.redbubble.com/i/iphone-case/Frankenstein-Monster-by-Gr3at1/147702609/3bp7">
+                <img src="assets/Frankenstein%20Monster.png" alt="Frankenstein Monster phone case" loading="lazy">
+                <span>Frankenstein Monster</span>
+              </a>
+            </div>
+          </div>
         </div>
       </section>
     </main>
@@ -264,6 +281,7 @@
     </footer>
 
     <script src="app.js?v=search-modal-1"></script>
-    <script src="search.js"></script>
+    <script src="shop.js"></script>
+  <script src="search.js"></script>
   </body>
 </html>
