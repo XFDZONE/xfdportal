@@ -189,16 +189,8 @@ function feedCard(item) {
 
 function renderFeed() {
   if (!feedGrid) return;
-  const query = (searchInput ? searchInput.value : "").trim().toLowerCase();
-  const filtered = feedItems.filter((item) => {
-    const matchesFilter = activeFilter === "all" || item.category === activeFilter;
-    const searchable = `${item.search || item.title.toLowerCase()} ${categoryLabel(item.category).toLowerCase()} ${item.meta} ${item.date}`;
-    return matchesFilter && query.split(/\s+/).every((word) => searchable.includes(word));
-  });
-
-  /* Searching shows every match; the 6-card cap only applies to browsing. */
-  const visible = query ? filtered : filtered.slice(0, FEED_MAX);
-  feedGrid.innerHTML = visible.map(feedCard).join("");
+  const filtered = feedItems.filter((item) => activeFilter === "all" || item.category === activeFilter);
+  feedGrid.innerHTML = filtered.slice(0, FEED_MAX).map(feedCard).join("");
   if (emptyState) emptyState.hidden = filtered.length > 0;
 }
 
@@ -324,15 +316,6 @@ async function loadAll() {
   buildHeroItems();
   renderHeroSlide();
   startHeroAuto();
-
-  /* Arriving from another page's search box: index.html?q=keywords */
-  const incoming = new URLSearchParams(window.location.search).get("q");
-  if (incoming && searchInput) {
-    searchInput.value = incoming;
-    const feedSection = document.querySelector("#feed");
-    if (feedSection) feedSection.scrollIntoView();
-  }
-
   renderFeed();
 }
 
@@ -346,7 +329,6 @@ if (filterControls) {
   });
 }
 
-if (searchInput) searchInput.addEventListener("input", renderFeed);
 
 const heroPrev = document.querySelector("#hero-prev");
 const heroNext = document.querySelector("#hero-next");
