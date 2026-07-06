@@ -94,28 +94,48 @@
         <div class="section-heading">
           <p class="eyebrow">Initialization // secure_merch_catalog</p>
           <h2 id="archive-title">The XFD Storefront</h2>
+          <p>Two stores, one portal. Fourthwall is the primary XFD shop; Redbubble carries the classic design catalog.</p>
         </div>
 
-        <div class="shop-filters" id="shop-filters" aria-label="Filter products by category">
-          <button class="shop-filter active" type="button" data-filter="all">All</button>
-          <button class="shop-filter" type="button" data-filter="apparel">Apparel</button>
-          <button class="shop-filter" type="button" data-filter="stickers">Stickers</button>
-          <button class="shop-filter" type="button" data-filter="home">Home &amp; Living</button>
-          <button class="shop-filter" type="button" data-filter="tech">Tech</button>
-        </div>
-
-        <div class="shop-stage">
-          <button class="shop-nav prev" id="shop-prev" type="button" aria-label="Previous product">‹</button>
-          <div class="shop-slide" id="shop-slide" aria-live="polite">
-            <p class="design-loading">Loading the collection…</p>
+        <div class="shop-tabs">
+          <div class="shop-tablist" role="tablist" aria-label="Shop">
+            <button class="shop-tab is-active" id="tab-fw" type="button" role="tab"
+                    aria-controls="panel-fw" aria-selected="true">Fourthwall</button>
+            <button class="shop-tab" id="tab-rb" type="button" role="tab"
+                    aria-controls="panel-rb" aria-selected="false" tabindex="-1">Redbubble</button>
           </div>
-          <button class="shop-nav next" id="shop-next" type="button" aria-label="Next product">›</button>
+
+          <!-- Fourthwall: default active, live product grid -->
+          <div class="shop-panel is-active" id="panel-fw" role="tabpanel" aria-labelledby="tab-fw">
+            <div id="fw-grid" class="fw-grid" aria-live="polite">
+              <p class="fw-loading">Loading the shop…</p>
+            </div>
+            <a class="button primary" href="https://xfd-shop.fourthwall.com" target="_blank" rel="noopener">Visit the full store →</a>
+          </div>
+
+          <!-- Redbubble: the existing product slideshow, unchanged -->
+          <div class="shop-panel" id="panel-rb" role="tabpanel" aria-labelledby="tab-rb" hidden>
+            <div class="shop-filters" id="shop-filters" aria-label="Filter products by category">
+              <button class="shop-filter active" type="button" data-filter="all">All</button>
+              <button class="shop-filter" type="button" data-filter="apparel">Apparel</button>
+              <button class="shop-filter" type="button" data-filter="stickers">Stickers</button>
+              <button class="shop-filter" type="button" data-filter="home">Home &amp; Living</button>
+              <button class="shop-filter" type="button" data-filter="tech">Tech</button>
+            </div>
+
+            <div class="shop-stage">
+              <button class="shop-nav prev" id="shop-prev" type="button" aria-label="Previous product">‹</button>
+              <div class="shop-slide" id="shop-slide" aria-live="polite">
+                <p class="design-loading">Loading the collection…</p>
+              </div>
+              <button class="shop-nav next" id="shop-next" type="button" aria-label="Next product">›</button>
+            </div>
+
+            <div class="shop-thumbs" id="shop-thumbs" aria-label="All products"></div>
+
+            <a class="shop-fullshop-link" href="https://www.redbubble.com/people/Gr3at1/shop?asc=u" target="_blank" rel="noopener">See every design on Redbubble →</a>
+          </div>
         </div>
-
-        <div class="shop-thumbs" id="shop-thumbs" aria-label="All products"></div>
-
-        <!-- UPDATE ME: swap Redbubble URL for Fourthwall store URL when live -->
-        <a class="shop-fullshop-link" href="https://www.redbubble.com/people/Gr3at1/shop?asc=u" target="_blank" rel="noopener">See every design in the shop →</a>
       </section>
 
       <section class="design-terminal section-banner" aria-labelledby="video-design-title">
@@ -475,6 +495,7 @@
 
       fetchDesignVideos();
     </script>
+    <script src="shop.js"></script>
     <script src="search.js"></script>
   </body>
 </html>
