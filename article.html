@@ -83,6 +83,50 @@
         color: var(--text-secondary, rgba(255,255,255,.75));
       }
       .article-body p { margin-bottom: 1.4rem; }
+      .article-body h2 {
+        font-size: 1.5rem;
+        line-height: 1.25;
+        margin: 2.6rem 0 1.1rem;
+        color: var(--text-primary, #fff);
+        letter-spacing: -0.01em;
+      }
+      .article-body h2::after {
+        content: "";
+        display: block;
+        width: 3rem;
+        height: 3px;
+        margin-top: 0.6rem;
+        border-radius: 3px;
+        background: var(--page-accent, #8a35ff);
+      }
+      .article-body h2:first-child { margin-top: 0; }
+      .article-body ul {
+        margin: 0 0 1.4rem;
+        padding-left: 1.3rem;
+        list-style: none;
+      }
+      .article-body li {
+        position: relative;
+        margin-bottom: 0.6rem;
+        padding-left: 0.2rem;
+      }
+      .article-body a {
+        color: var(--page-accent, #8a35ff);
+        text-decoration: none;
+        border-bottom: 1px solid color-mix(in srgb, var(--page-accent, #8a35ff) 45%, transparent);
+        transition: border-color .15s ease, color .15s ease;
+      }
+      .article-body a:hover {
+        color: #fff;
+        border-bottom-color: #fff;
+      }
+      .article-body li::before {
+        content: "▸";
+        position: absolute;
+        left: -1.1rem;
+        color: var(--page-accent, #8a35ff);
+        font-weight: 700;
+      }
       .article-divider {
         border: none;
         border-top: 1px solid rgba(255,255,255,.1);
@@ -280,16 +324,74 @@
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;');
+        // Inline [label](url) links. Escaping always runs first, so the link
+        // markup is the only HTML we ever emit from body text. A url is only
+        // accepted if it's http(s) or scheme-less (a relative page link), which
+        // keeps javascript: and data: URLs out; anything else stays plain text.
+        const safeHref = (href) =>
+          !/["'<>]/.test(href) && (/^https?:\/\//.test(href) || !href.includes(':'));
+        const inline = (s) => escapeHtml(s).replace(
+          /\[([^\]]+)\]\(([^)\s]+)\)/g,
+          (whole, label, href) => {
+            if (!safeHref(href)) return whole;
+            const external = /^https?:\/\//.test(href);
+            const attrs = external ? ' target="_blank" rel="noopener"' : '';
+            return `<a href="${href}"${attrs}>${label}</a>`;
+          }
+        );
         // If the body uses blank-line paragraphs, split on those (single newlines
         // inside a paragraph become <br>). If it only uses single line breaks,
         // treat every line as its own paragraph so it doesn't render as one wall.
         const hasBlankLines = /\n\s*\n/.test(text);
+        const HEADING = /^#{2,3}\s+/;
+        const BULLET = /^[-*]\s+/;
+        // A block with no "## heading" or "- bullet" lines renders exactly as it
+        // always did: one <p>, with single newlines becoming <br>. Only blocks
+        // that actually use the markup take the parsing path, so every existing
+        // article is untouched.
+        const renderBlock = (block) => {
+          const lines = block.split('\n').map((l) => l.trim()).filter(Boolean);
+          if (!lines.some((l) => HEADING.test(l) || BULLET.test(l))) {
+            return `<p>${inline(block).replace(/\n/g, '<br>')}</p>`;
+          }
+          let html = '';
+          let list = [];
+          let para = [];
+          const flushList = () => {
+            if (!list.length) return;
+            html += `<ul>${list.map((li) => `<li>${inline(li)}</li>`).join('')}</ul>`;
+            list = [];
+          };
+          const flushPara = () => {
+            if (!para.length) return;
+            html += `<p>${para.map(inline).join('<br>')}</p>`;
+            para = [];
+          };
+          lines.forEach((line) => {
+            if (HEADING.test(line)) {
+              flushList();
+              flushPara();
+              html += `<h2>${escapeHtml(line.replace(HEADING, ''))}</h2>`;
+            } else if (BULLET.test(line)) {
+              flushPara();
+              list.push(line.replace(BULLET, ''));
+            } else {
+              flushList();
+              para.push(line);
+            }
+          });
+          flushList();
+          flushPara();
+          return html;
+        };
         bodyEl.innerHTML = text
           .split(hasBlankLines ? /\n\s*\n/ : /\n+/)
           .map((para) => para.trim())
           .filter(Boolean)
-          .map((para) => `<p>${escapeHtml(para).replace(/\n/g, '<br>')}</p>`)
-          .join('');
+          .map(renderBlock)
+          .join('')
+          // Bullets split across adjacent blocks should read as one list.
+          .replace(/<\/ul><ul>/g, '');
       }
 
       loadArticle();
